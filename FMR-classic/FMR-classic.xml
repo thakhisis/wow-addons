@@ -1,0 +1,1125 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd"> 
+
+	
+	<Script file="FMR.lua"/>
+
+	<Button name="FMR_Tab_Class" virtual="true">
+		<NormalFont style="GameFontHighlightSmall"/>
+		<HighlightFont style="GameFontHighlightSmall"/>
+		<DisabledFont style="GameFontDisableSmall"/>
+	</Button>
+
+	<Frame name="FMR_O" toplevel="true" frameStrata="DIALOG" movable="true" enableMouse="true" hidden="true" parent="UIParent" enableKeyboard="true">
+		<Size>
+			<AbsDimension x="260" y="180"/>
+		</Size>
+		<Anchors>
+			<Anchor point="CENTER"/>
+		</Anchors>
+		<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<BackgroundInsets>
+				<AbsInset left="11" right="12" top="12" bottom="11"/>
+			</BackgroundInsets>
+			<TileSize>
+				<AbsValue val="32"/>
+			</TileSize>
+			<EdgeSize>
+				<AbsValue val="32"/>
+			</EdgeSize>
+		</Backdrop>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture name="FMR_O_H" file="Interface\DialogFrame\UI-DialogBox-Header">
+					<Size>
+						<AbsDimension x="320" y="64"/>
+					</Size>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset>
+								<AbsDimension x="0" y="12"/>
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
+				<FontString name = "FMR_O_Title" inherits="GameFontNormal" text="FMR Settings">
+					<Anchors>
+						<Anchor point="TOP" relativeTo="FMR_O_H">
+							<Offset>
+								<AbsDimension x="0" y="-14"/>
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+		
+			<CheckButton name="FMR_O_SyncMsg" inherits="OptionsCheckButtonTemplate" text="Alabala">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset>
+							<AbsDimension x="18" y="-35"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Show synch' messages")
+					</OnLoad>
+					<OnClick>
+						if AOS_Settings.ShowSyncMsg == 1 then AOS_Settings.ShowSyncMsg = 0 else AOS_Settings.ShowSyncMsg = 1 end
+					</OnClick>
+				</Scripts>
+			</CheckButton>
+			
+			<Slider name="FMR_AcePos" inherits="OptionsSliderTemplate">
+				<Size>
+					<AbsDimension x="220" y="16"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP">
+						<Offset>
+							<AbsDimension x="0" y="-95" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(self:GetName().."Text"):SetText("Ace button position");
+						getglobal(self:GetName().."High"):SetText();
+						getglobal(self:GetName().."Low"):SetText();
+						FMR_AcePos:SetMinMaxValues(0,360);
+						FMR_AcePos:SetValueStep(1);
+					</OnLoad>
+					<OnValueChanged>
+						AOS_Settings.AcePos = FMR_AcePos:GetValue();
+						fmr_ACE_UpdatePosition();
+					</OnValueChanged>
+				</Scripts>
+			</Slider>
+			<Button name="FMR_O_CloseBTN" inherits="OptionsButtonTemplate" text="Done">
+				<Anchors>
+					<Anchor point="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="20"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						FMR_O:Hide();
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+	</Frame>
+
+	<Frame name="FMR_ACE" parent="Minimap" enableMouse="true" hidden="false" frameStrata="LOW">
+		<Size>
+			<AbsDimension x="32" y="32"/>
+		</Size>
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeTo="Minimap" relativePoint="RIGHT">
+				<Offset>
+					<AbsDimension x="2" y="0"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+		<Frames>
+			<Button name="FMR_ACE_BTN">
+				<Size>
+					<AbsDimension x="32" y="32"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset>
+							<AbsDimension x="0" y="0"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<NormalTexture file="Interface\AddOns\FMR\Images\AOSButton-Up"/>
+				<PushedTexture file="Interface\AddOns\FMR\Images\AOSButton-Down"/>
+				<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
+				<Scripts>
+					<OnLoad>
+						self:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+					</OnLoad>
+					<OnClick>
+						if arg1 == "RightButton" then
+							if FMR_O:IsVisible() then
+								FMR_O:Hide()
+							else
+								FMR_O:Show()
+							end
+						else
+							if FMR_S:IsVisible() then 
+								FMR_S:Hide()
+							else
+								FMR_S:Show()
+							end
+						end
+					</OnClick>
+					<OnUpdate>
+						fmr_OnUpdate()
+					</OnUpdate>
+					<OnEnter>
+						fmr_SetAceTooltip()
+						g_fmrTooltipON = true
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						g_fmrTooltipON = false
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self:RegisterEvent("VARIABLES_LOADED");
+				self:Show();
+			</OnLoad>
+			<OnEvent>
+				fmr_ACE_UpdatePosition();
+			</OnEvent>
+		</Scripts>
+	</Frame>
+	
+	<Frame name="FMR_S" parent="UIParent" hidden="false" movable="true" enableMouse="True" frameStrata="HIGH" resizable="false">
+		<Size><AbsDimension x="250" y="340"/></Size>
+		<Anchors>
+			<Anchor point="CENTER"/>
+			<Offset><AbsDimension x="0" y="48"/></Offset>
+		</Anchors>
+		<Backdrop name="$parentBackdrop" bgFile="Interface\TutorialFrame\TutorialFrameBackground"
+		edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="16"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="128"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="5" right="5" top="5" bottom="5"/>
+			</BackgroundInsets>
+		</Backdrop>	
+
+		<Frames>
+
+			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeTo="FMR_S">
+						<Offset>
+							<AbsDimension x="0" y="0"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Button>
+
+ 			<Frame name="FMR_S_H" parent="FMR_S" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_S" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="7" y="-7"/></Offset>
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S" relativePoint="TOPRIGHT">
+						<Offset><AbsDimension x="-7" y="-44"/></Offset>
+					</Anchor>
+				</Anchors>
+
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.1" g="0.22" b="0.4" a="0.55" /> 
+						</Texture> 
+						<FontString name="FMR_S_Title" inherits="GameFontNormal" outline="NORMAL" text="GUILD STANDINGS" justifyH="Center" justifyV="TOP">
+							<Color r="0.94" g="0.78" b="0.12"/>
+							<Anchors>
+								<Anchor point="TOP" relativeTo="FMR_S_H" relativePoint="TOP">
+									<Offset><AbsDimension x="0" y="-2"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOM" relativeTo="FMR_S_H" relativePoint="BOTTOM">
+									<Offset><AbsDimension x="0" y="24"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+						<FontString name="FMR_S_Guild" inherits="GameFontNormalSmall" text="n/a" justifyH="Center" justifyV="TOP">
+							<Color r="0.9" g="0.9" b="0.9"/>
+							<Anchors>
+								<Anchor point="TOP" relativeTo="FMR_S_H" relativePoint="TOP">
+									<Offset><AbsDimension x="0" y="-22"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOM" relativeTo="FMR_S_H" relativePoint="BOTTOM">
+									<Offset><AbsDimension x="0" y="0"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+
+ 			<Frame name="FMR_S_Tabs" parent="FMR_S" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_S" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="7" y="-46"/></Offset>
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S" relativePoint="TOPRIGHT">
+						<Offset><AbsDimension x="-7" y="-60"/></Offset>
+					</Anchor>
+				</Anchors>
+
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.1" g="0.22" b="0.48" a="0.4" /> 
+						</Texture> 
+					</Layer>
+				</Layers>
+
+				<Frames>
+					<Button name="FMR_S_TName" inherits="FMR_Tab_Class" text="Name">
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativeTo="FMR_S_Tabs" relativePoint="BOTTOMLEFT">
+								<Offset>
+									<AbsDimension x="0" y="2"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="85" y="12"/></Size>
+						<Scripts>
+							<OnClick>
+								fmr_SetSortKey("name");
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="FMR_S_TLuck" inherits="FMR_Tab_Class" text="Luck">
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativeTo="FMR_S_Tabs" relativePoint="BOTTOMLEFT">
+								<Offset>
+									<AbsDimension x="95" y="2"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="50" y="12"/></Size>
+						<Scripts>
+							<OnClick>
+								fmr_SetSortKey("bonus");
+							</OnClick>
+						</Scripts>
+					</Button>
+
+					<Button name="FMR_S_TDays" inherits="FMR_Tab_Class" text="Raid">
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativeTo="FMR_S_Tabs" relativePoint="BOTTOMLEFT">
+								<Offset>
+									<AbsDimension x="160" y="2"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="78" y="12"/></Size>
+						<Scripts>
+							<OnClick>
+								fmr_SetSortKey("days");
+							</OnClick>
+						</Scripts>
+					</Button>
+				</Frames>
+			</Frame>
+
+
+			<Frame name="FMR_S_F" parent="FMR_S" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="FMR_S" relativePoint="BOTTOMLEFT">
+						<Offset><AbsDimension x="7" y="7"/></Offset>
+					</Anchor>
+					<Anchor point="TOPRIGHT" relativeTo="FMR_S" relativePoint="BOTTOMRIGHT">
+						<Offset><AbsDimension x="-7" y="30"/></Offset>
+					</Anchor>
+				</Anchors>
+
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.15" g="0.3" b="0.6" a="0.3" /> 
+						</Texture> 
+					</Layer>
+				</Layers>
+				<Frames>
+					<Button name="FMR_S_MenageBTN" inherits="UIPanelButtonTemplate" text="Manage">
+						<NormalText inherits="GameFontNormalSmall"/> 
+						<HighlightText inherits="GameFontNormalSmall"/> 
+						<DisabledText inherits="GameFontNormalSmall">
+							<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+						</DisabledText>
+						<Anchors>
+							<Anchor point="BOTTOM" relativeTo="FMR_S" relativePoint="BOTTOM">
+								<Offset>
+									<AbsDimension x="0" y="8"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="80" y="20"/></Size>
+						<Scripts>
+							<OnClick>
+								if FMR_GM:IsVisible() then
+									FMR_GM:Hide()
+								else
+									FMR_GM:Show()
+								end
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="FMR_S_RollBTN" inherits="UIPanelButtonTemplate" text="Loot">
+						<NormalText inherits="GameFontNormalSmall"/> 
+						<HighlightText inherits="GameFontNormalSmall"/> 
+						<DisabledText inherits="GameFontNormalSmall">
+							<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+						</DisabledText>
+						<Anchors>
+							<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S" relativePoint="BOTTOMRIGHT">
+								<Offset>
+									<AbsDimension x="-8" y="8"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="80" y="20"/></Size>
+						<Scripts>
+							<OnClick>
+								fmr_StartRoll();
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="FMR_S_ModeBTN" inherits="UIPanelButtonTemplate" text="Show Raid">
+						<NormalText inherits="GameFontNormalSmall"/> 
+						<HighlightText inherits="GameFontNormalSmall"/> 
+						<DisabledText inherits="GameFontNormalSmall">
+							<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+						</DisabledText>
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativeTo="FMR_S" relativePoint="BOTTOMLEFT">
+								<Offset>
+									<AbsDimension x="8" y="8"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="80" y="20"/></Size>
+						<Scripts>
+							<OnClick>
+								if g_fmrListMode == "guild" then 
+									g_fmrListMode = "raid"
+									self:SetText("Show Guild")
+									FMR_S_Title:SetText("RAID STANDINGS")
+								else
+									g_fmrListMode = "guild"
+									self:SetText("Show Raid")
+									FMR_S_Title:SetText("GUILD STANDINGS")
+								end
+								fmr_UpdateRaid()
+								fmr_UpdateListWnd()					
+							</OnClick>
+						</Scripts>
+					</Button>
+				</Frames>
+			</Frame>
+			<ScrollFrame name="FMR_S_SF" inherits="UIPanelScrollFrameTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_S_Tabs" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="5" y="-5"/>
+						</Offset>
+					</Anchor> 
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S_F" relativePoint="TOPRIGHT">
+						<Offset>
+							<AbsDimension x="-22" y="5"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+
+				<ScrollChild>
+					<Frame name="FMR_S_SF_SC">
+						<Size>
+							<AbsDimension x="5" y="5"/>
+						</Size>
+						<Frames>
+							<SimpleHTML name="FMR_S_NameList">
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeTo="FMR_S_SF_SC">
+										<Offset>
+											<AbsDimension x="0" y="-2"/>
+										</Offset>
+									</Anchor>
+									<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S_SF_SC" relativePoint="BOTTOMLEFT">
+										<Offset>
+											<AbsDimension x="100" y="2"/>
+										</Offset>
+									</Anchor>
+								</Anchors>
+								<Scripts>
+									<OnHyperlinkClick>
+										fmr_ListLink(arg1, "click");
+									</OnHyperlinkClick>
+								</Scripts>
+
+								<FontString name="FMR_NameText" spacing="1.5" inherits="GameFontNormalSmall" justifyH="LEFT" justifyV="TOP" >
+									<Size>
+										<AbsDimension x="270" y="0"/>
+									</Size>
+								</FontString>
+							</SimpleHTML>
+
+							<SimpleHTML name="FMR_S_BonusList" justifyH="RIGHT" justifyV="TOP" >
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeTo="FMR_S_SF_SC">
+										<Offset>
+											<AbsDimension x="95" y="-2"/>
+										</Offset>
+									</Anchor>
+									<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S_SF_SC">
+										<Offset>
+											<AbsDimension x="0" y="2"/>
+										</Offset>
+									</Anchor>
+								</Anchors>
+
+								<FontString name="FMR_BonusText" spacing="1.5" inherits="GameFontNormalSmall" justifyH="RIGHT" justifyV="TOP" >
+									<Size>
+										<AbsDimension x="50" y="0"/>
+									</Size>
+								</FontString>
+							</SimpleHTML>
+
+							<SimpleHTML name="FMR_S_DivList" justifyH="RIGHT" justifyV="TOP" >
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeTo="FMR_S_SF_SC">
+										<Offset>
+											<AbsDimension x="160" y="-2"/>
+										</Offset>
+									</Anchor>
+									<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S_SF_SC">
+										<Offset>
+											<AbsDimension x="0" y="2"/>
+										</Offset>
+									</Anchor>
+								</Anchors>
+			
+								<FontString name="FMR_DivText" spacing="1.5" inherits="GameFontNormalSmall" justifyH="RIGHT" justifyV="TOP" >
+									<Size>
+										<AbsDimension x="50" y="0"/>
+									</Size>
+								</FontString>
+							</SimpleHTML>
+						</Frames>
+					</Frame>
+				</ScrollChild>
+			</ScrollFrame>
+			
+		</Frames>
+
+		<Scripts>
+			<OnMouseDown> self:StartMoving();  </OnMouseDown>
+			<OnMouseUp>  self:StopMovingOrSizing(); </OnMouseUp>
+			<OnDragStop> self:StopMovingOrSizing(); </OnDragStop>
+			<OnLoad>
+				fmr_OnLoad();
+			</OnLoad>
+			<OnEvent>
+				fmr_OnEvent(event);
+			</OnEvent>
+			
+		</Scripts>
+
+	</Frame>
+
+	<Frame name="FMR_H" parent="FMR_S" hidden="true" movable="false" enableMouse="True" frameStrata="HIGH" resizable="false">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeTo="FMR_S" relativePoint="BOTTOMLEFT">
+				<Offset><AbsDimension x="-140" y="80"/></Offset>
+			</Anchor>
+			<Anchor point="BOTTOMRIGHT" relativeTo="FMR_S" relativePoint="BOTTOMLEFT">
+				<Offset><AbsDimension x="-10" y="0"/></Offset>
+			</Anchor>
+		</Anchors>
+		<Backdrop name="$parentBackdrop" bgFile="Interface\TutorialFrame\TutorialFrameBackground"
+		edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="16"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="32"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="5" right="5" top="5" bottom="5"/>
+			</BackgroundInsets>
+		</Backdrop>	
+
+		<Frames>
+			<Frame name="FMR_H_H" parent="FMR_H" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_H" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="7" y="-7"/></Offset>
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_H" relativePoint="TOPRIGHT">
+						<Offset><AbsDimension x="-7" y="-28"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.15" g="0.3" b="0.6" a="0.3" /> 
+						</Texture> 
+						<FontString name="FMR_H_Name" inherits="GameFontNormal" outline="NORMAL" text="Player" justifyH="LEFT" justifyV="TOP">
+							<Color r="0.94" g="0.78" b="0.12"/>
+							<Size>
+								<AbsDimension x="140" y="0"/>
+							</Size>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="FMR_H_H" relativePoint="TOPLEFT">
+									<Offset><AbsDimension x="0" y="-2"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOMRIGHT" relativeTo="FMR_H_H" relativePoint="BOTTOMRIGHT">
+									<Offset><AbsDimension x="-16" y="2"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+
+			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeTo="FMR_H">
+						<Offset>
+							<AbsDimension x="-1" y="-1"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Button>
+			
+			<Button name="FMR_H_WinBTN" inherits="UIPanelButtonTemplate" text="Win Item">
+				<NormalText inherits="GameFontNormalSmall"/> 
+				<HighlightText inherits="GameFontNormalSmall"/> 
+				<DisabledText inherits="GameFontNormalSmall">
+					<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+				</DisabledText>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="FMR_H_H" relativePoint="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="-8"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Size><AbsDimension x="106" y="20"/></Size>
+				<Scripts>
+					<OnClick>
+						fmr_ItemWon(g_fmrCurPlayer)
+						FMR_H:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnMouseDown>  </OnMouseDown>
+			<OnMouseUp>   </OnMouseUp>
+			<OnDragStop>  </OnDragStop>
+			<OnShow>  </OnShow>
+		</Scripts>
+
+	</Frame>
+
+
+	<Frame name="FMR_GM" parent="FMR_S" hidden="true" movable="false" enableMouse="True" frameStrata="HIGH" resizable="false">
+		<Anchors>
+			<Anchor point="TOPRIGHT" relativeTo="FMR_S" relativePoint="TOPLEFT">
+				<Offset><AbsDimension x="-10" y="0"/></Offset>
+			</Anchor>
+			<Anchor point="BOTTOMLEFT" relativeTo="FMR_S" relativePoint="TOPLEFT">
+				<Offset><AbsDimension x="-140" y="-100"/></Offset>
+			</Anchor>
+		</Anchors>
+		<Backdrop name="$parentBackdrop" bgFile="Interface\TutorialFrame\TutorialFrameBackground"
+		edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="16"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="32"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="5" right="5" top="5" bottom="5"/>
+			</BackgroundInsets>
+		</Backdrop>	
+
+		<Frames>
+			<Frame name="FMR_GM_H" parent="FMR_GM" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_GM" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="7" y="-7"/></Offset>
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_GM" relativePoint="TOPRIGHT">
+						<Offset><AbsDimension x="-7" y="-28"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.15" g="0.3" b="0.6" a="0.3" /> 
+						</Texture> 
+						<FontString name="FMR_GM_Title" inherits="GameFontNormal" outline="NORMAL" text="Manage Guild" justifyH="LEFT" justifyV="TOP">
+							<Color r="0.94" g="0.78" b="0.12"/>
+							<Size>
+								<AbsDimension x="140" y="0"/>
+							</Size>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="FMR_GM_H" relativePoint="TOPLEFT">
+									<Offset><AbsDimension x="0" y="-2"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOMRIGHT" relativeTo="FMR_GM_H" relativePoint="BOTTOMRIGHT">
+									<Offset><AbsDimension x="-16" y="2"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+
+			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeTo="FMR_GM">
+						<Offset>
+							<AbsDimension x="-1" y="-1"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Button>
+			
+			<Button name="FMR_GM_PurgeBTN" inherits="UIPanelButtonTemplate" text="Purge">
+				<NormalText inherits="GameFontNormalSmall"/> 
+				<HighlightText inherits="GameFontNormalSmall"/> 
+				<DisabledText inherits="GameFontNormalSmall">
+					<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+				</DisabledText>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="FMR_GM_H" relativePoint="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="-4"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Size><AbsDimension x="116" y="20"/></Size>
+				<Scripts>
+					<OnClick>
+						fmr_Purge()
+						FMR_GM:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnMouseDown>  </OnMouseDown>
+			<OnMouseUp>   </OnMouseUp>
+			<OnDragStop>  </OnDragStop>
+			<OnShow>  </OnShow>
+		</Scripts>
+
+	</Frame>
+	
+	<Frame name="FMR_RM" parent="FMR_S" hidden="true" movable="false" enableMouse="True" frameStrata="HIGH" resizable="false">
+		<Anchors>
+			<Anchor point="TOPRIGHT" relativeTo="FMR_S" relativePoint="TOPLEFT">
+				<Offset><AbsDimension x="-10" y="0"/></Offset>
+			</Anchor>
+			<Anchor point="BOTTOMLEFT" relativeTo="FMR_S" relativePoint="TOPLEFT">
+				<Offset><AbsDimension x="-140" y="-160"/></Offset>
+			</Anchor>
+		</Anchors>
+		<Backdrop name="$parentBackdrop" bgFile="Interface\TutorialFrame\TutorialFrameBackground"
+		edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="16"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="32"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="5" right="5" top="5" bottom="5"/>
+			</BackgroundInsets>
+		</Backdrop>	
+
+		<Frames>
+			<Frame name="FMR_RM_H" parent="FMR_RM" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_RM" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="7" y="-7"/></Offset>
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_RM" relativePoint="TOPRIGHT">
+						<Offset><AbsDimension x="-7" y="-28"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.15" g="0.3" b="0.6" a="0.3" /> 
+						</Texture> 
+						<FontString name="FMR_RM_Title" inherits="GameFontNormal" outline="NORMAL" text="Raid Options" justifyH="LEFT" justifyV="TOP">
+							<Color r="0.94" g="0.78" b="0.12"/>
+							<Size>
+								<AbsDimension x="140" y="0"/>
+							</Size>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="FMR_RM_H" relativePoint="TOPLEFT">
+									<Offset><AbsDimension x="0" y="-2"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOMRIGHT" relativeTo="FMR_RM_H" relativePoint="BOTTOMRIGHT">
+									<Offset><AbsDimension x="-16" y="2"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+
+			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeTo="FMR_RM">
+						<Offset>
+							<AbsDimension x="-1" y="-1"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Button>
+			
+			<Button name="FMR_RM_Award1BTN" inherits="UIPanelButtonTemplate" text="Award |cffffffff1|r LP">
+				<NormalText inherits="GameFontNormalSmall"/> 
+				<HighlightText inherits="GameFontNormalSmall"/> 
+				<DisabledText inherits="GameFontNormalSmall">
+					<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+				</DisabledText>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="FMR_RM_H" relativePoint="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="-12"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Size><AbsDimension x="116" y="20"/></Size>
+				<Scripts>
+					<OnClick>
+						fmr_AwardRaid(1)
+						FMR_RM:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<Button name="FMR_RM_Award2BTN" inherits="UIPanelButtonTemplate" text="Award |cffffffff2|r LP">
+				<NormalText inherits="GameFontNormalSmall"/> 
+				<HighlightText inherits="GameFontNormalSmall"/> 
+				<DisabledText inherits="GameFontNormalSmall">
+					<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+				</DisabledText>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="FMR_RM_Award1BTN" relativePoint="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="-2"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Size><AbsDimension x="116" y="20"/></Size>
+				<Scripts>
+					<OnClick>
+						fmr_AwardRaid(2)
+						FMR_RM:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+
+			<Button name="FMR_RM_Award5BTN" inherits="UIPanelButtonTemplate" text="Award |cffffffff5|r LP">
+				<NormalText inherits="GameFontNormalSmall"/> 
+				<HighlightText inherits="GameFontNormalSmall"/> 
+				<DisabledText inherits="GameFontNormalSmall">
+					<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+				</DisabledText>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="FMR_RM_Award2BTN" relativePoint="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="-2"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Size><AbsDimension x="116" y="20"/></Size>
+				<Scripts>
+					<OnClick>
+						fmr_AwardRaid(5)
+						FMR_RM:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<Button name="FMR_RM_Penalty3BTN" inherits="UIPanelButtonTemplate" text="Penalty |cffff00003|r LP">
+				<NormalText inherits="GameFontNormalSmall"> 
+				</NormalText> 
+				<HighlightText inherits="GameFontNormalSmall"> 
+				</HighlightText> 
+				<DisabledText inherits="GameFontNormalSmall">
+					<Color r="0.75" g="0.75" b="0.75" a="1.0" /> 
+				</DisabledText>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="FMR_RM_Award5BTN" relativePoint="BOTTOM">
+						<Offset>
+							<AbsDimension x="0" y="-14"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Size><AbsDimension x="90" y="18"/></Size>
+				<Scripts>
+					<OnClick>
+						fmr_AwardRaid(-3)
+						FMR_RM:Hide()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+		</Frames>
+
+		<Scripts>
+			<OnMouseDown>  </OnMouseDown>
+			<OnMouseUp>   </OnMouseUp>
+			<OnDragStop>  </OnDragStop>
+			<OnShow>  </OnShow>
+		</Scripts>
+
+	</Frame>
+
+
+
+
+	<Frame name="FMR_R" parent="FMR_S" hidden="true" movable="false" enableMouse="True" frameStrata="HIGH" resizable="false">
+		<Anchors>
+			<Anchor point="BOTTOMLEFT" relativeTo="FMR_S" relativePoint="BOTTOMRIGHT">
+				<Offset><AbsDimension x="12" y="0"/></Offset>
+			</Anchor>
+		</Anchors>
+		<Size><AbsDimension x="200" y="260"/></Size>
+		<Backdrop name="$parentBackdrop" bgFile="Interface\TutorialFrame\TutorialFrameBackground"
+		edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="16"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="32"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="5" right="5" top="5" bottom="5"/>
+			</BackgroundInsets>
+		</Backdrop>	
+
+		<Frames>
+			<Frame name="FMR_R_H" parent="FMR_R" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_R" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="7" y="-7"/></Offset>
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_R" relativePoint="TOPRIGHT">
+						<Offset><AbsDimension x="-7" y="-38"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.15" g="0.3" b="0.6" a="0.3" /> 
+						</Texture> 
+						<FontString name="$parent_Title" inherits="QuestFont" outline="NORMAL" text="Current Roll" justifyH="Center" justifyV="TOP">
+							<Color r="0.94" g="0.78" b="0.12"/>
+							<Anchors>
+								<Anchor point="TOP" relativeTo="FMR_R_H" relativePoint="TOP">
+									<Offset><AbsDimension x="0" y="-2"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOM" relativeTo="FMR_R_H" relativePoint="BOTTOM">
+									<Offset><AbsDimension x="0" y="0"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+						<FontString name="FMR_R_Winner" inherits="GameFontNormalSmall" text="Winner: Unknown" justifyH="Center" justifyV="TOP">
+							<Color r="0.8" g="0.8" b="0.8"/>
+							<Anchors>
+								<Anchor point="TOP" relativeTo="FMR_R_H" relativePoint="TOP">
+									<Offset><AbsDimension x="0" y="-17"/></Offset>
+								</Anchor>
+								<Anchor point="BOTTOM" relativeTo="FMR_R_H" relativePoint="BOTTOM">
+									<Offset><AbsDimension x="0" y="0"/></Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+						
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame name="FMR_R_F" parent="FMR_R" hidden="false" movable="false" enableMouse="false" frameStrata="HIGH" resizable="false">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="FMR_R" relativePoint="BOTTOMLEFT">
+						<Offset><AbsDimension x="7" y="7"/></Offset>
+					</Anchor>
+					<Anchor point="TOPRIGHT" relativeTo="FMR_R" relativePoint="BOTTOMRIGHT">
+						<Offset><AbsDimension x="-7" y="30"/></Offset>
+					</Anchor>
+				</Anchors>
+
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parent_Background" setAllPoints="true">
+							<Color r="0.15" g="0.3" b="0.6" a="0.3" /> 
+						</Texture> 
+					</Layer>
+				</Layers>
+
+				<Frames>
+					<Button name="FMR_R_TieBTN" inherits="UIPanelButtonTemplate" text="Solve Tie">
+						<NormalText inherits="GameFontNormalSmall"/> 
+						<HighlightText inherits="GameFontNormalSmall"/> 
+						<DisabledText inherits="GameFontNormalSmall"> 
+							<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+						</DisabledText> 
+						<Anchors>
+							<Anchor point="BOTTOMRIGHT" relativeTo="FMR_R">
+								<Offset>
+									<AbsDimension x="-8" y="8"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="70" y="20"/></Size>
+						<Scripts>
+							<OnClick>
+								fmr_SolveTie();
+							</OnClick>
+						</Scripts>
+					</Button>
+					<Button name="FMR_R_EndBTN" inherits="UIPanelButtonTemplate" text="END">
+						<NormalText inherits="GameFontNormalSmall"/> 
+						<HighlightText inherits="GameFontNormalSmall"/> 
+						<DisabledText inherits="GameFontNormalSmall"> 
+							<Color r="0.6" g="0.6" b="0.6" a="1.0" /> 
+						</DisabledText> 
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativeTo="FMR_R">
+								<Offset>
+									<AbsDimension x="8" y="8"/>
+								</Offset>
+							</Anchor>
+						</Anchors>
+						<Size><AbsDimension x="50" y="20"/></Size>
+						<Scripts>
+							<OnClick>
+								fmr_EndRoll();
+							</OnClick>
+						</Scripts>
+					</Button>
+				</Frames>
+			</Frame>
+
+			<ScrollFrame name="FMR_R_SF" inherits="UIPanelScrollFrameTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="FMR_R_H" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="3" y="-5"/>
+						</Offset>
+					</Anchor> 
+					<Anchor point="BOTTOMRIGHT" relativeTo="FMR_R_F" relativePoint="TOPRIGHT">
+						<Offset>
+							<AbsDimension x="-22" y="5"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+
+				<ScrollChild>
+					<Frame name="FMR_R_SF_SC">
+						<Size>
+							<AbsDimension x="5" y="5"/>
+						</Size>
+						<Frames>
+							<SimpleHTML name="FMR_R_NameList">
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeTo="FMR_R_SF_SC">
+										<Offset>
+											<AbsDimension x="0" y="-2"/>
+										</Offset>
+									</Anchor>
+									<Anchor point="BOTTOMRIGHT" relativeTo="FMR_R_SF_SC" relativePoint="BOTTOMLEFT">
+										<Offset>
+											<AbsDimension x="100" y="2"/>
+										</Offset>
+									</Anchor>
+								</Anchors>
+								<Scripts>
+									<OnHyperlinkClick>
+										fmr_ForceWinner(arg1, "click");
+									</OnHyperlinkClick>
+								</Scripts>
+								<FontString name="FMR_R_NameText" spacing="1.5" inherits="GameFontNormalSmall" justifyH="LEFT" justifyV="TOP" >
+									<Size>
+										<AbsDimension x="270" y="0"/>
+									</Size>
+								</FontString>
+							</SimpleHTML>
+
+							<SimpleHTML name="FMR_R_FRoll" justifyH="RIGHT" justifyV="TOP" >
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeTo="FMR_R_SF_SC">
+										<Offset>
+											<AbsDimension x="65" y="-2"/>
+										</Offset>
+									</Anchor>
+									<Anchor point="BOTTOMRIGHT" relativeTo="FMR_R_SF_SC">
+										<Offset>
+											<AbsDimension x="0" y="2"/>
+										</Offset>
+									</Anchor>
+								</Anchors>
+
+								<FontString name="FMR_R_FRollText" spacing="1.5" inherits="GameFontNormalSmall" justifyH="RIGHT" justifyV="TOP" >
+									<Size>
+										<AbsDimension x="50" y="0"/>
+									</Size>
+								</FontString>
+							</SimpleHTML>
+
+							<SimpleHTML name="FMR_R_RRoll" justifyH="RIGHT" justifyV="TOP" >
+								<Anchors>
+									<Anchor point="TOPLEFT" relativeTo="FMR_R_SF_SC">
+										<Offset>
+											<AbsDimension x="120" y="-2"/>
+										</Offset>
+									</Anchor>
+									<Anchor point="BOTTOMRIGHT" relativeTo="FMR_R_SF_SC">
+										<Offset>
+											<AbsDimension x="0" y="2"/>
+										</Offset>
+									</Anchor>
+								</Anchors>
+
+								<FontString name="FMR_R_RRollText" spacing="1.5" inherits="GameFontNormalSmall" justifyH="RIGHT" justifyV="TOP" >
+									<Size>
+										<AbsDimension x="50" y="0"/>
+									</Size>
+								</FontString>
+							</SimpleHTML>
+
+						</Frames>
+					</Frame>
+				</ScrollChild>
+			</ScrollFrame>
+
+ 
+	
+		</Frames>
+		
+
+		<Scripts>
+			<OnMouseDown>  </OnMouseDown>
+			<OnMouseUp>   </OnMouseUp>
+			<OnDragStop>  </OnDragStop>
+			<OnShow>  </OnShow>
+		</Scripts>
+
+	</Frame>
+
+	
+</Ui>
