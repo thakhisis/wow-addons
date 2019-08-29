@@ -1,9 +1,0 @@
-## Interface: 11200
-## Title: FMR-classic
-## Version: 3.0b-classic
-## Author: Frujin
-## Notes: FMR loot system.
-## OptionalDeps:
-## Dependencies:
-## SavedVariables: AOS_Settings, AOS_Guild_303
-FMR-classic.xml
