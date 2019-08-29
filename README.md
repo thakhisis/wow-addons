@@ -1,12 +1,11 @@
  # Wow addons
 
 ## Install from new
-
 `cd "C:\Program Files(x86)\World of Warcraft\_classic_\Interface\Addons\"`  
-`rm -rdf *`  
 `git init`  
-`git remote add origin -t classic https://github.com/thakhisis/wow-addons`  
-`git checkout -t origin/classic`
+`git remote add origin https://github.com/thakhisis/wow-addons`  
+`git fetch`  
+`git checkout classic`  
 `git pull`  
 
 ## Update from new
@@ -14,7 +13,7 @@
 `git init`  
 `git remote add -t classic https://github.com/thakhisis/wow-addons`  
 `git fetch`  
-`git checkout -t origin/master`  
+`git checkout -t origin/classic`  
 `git pull`  
 `git add .`  
 `git commit -m "added"`  
