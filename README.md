@@ -1,4 +1,4 @@
-# Wow addons
+ # Wow addons
 
 ## Install from new
 
@@ -6,7 +6,7 @@
 `rm -rdf *`  
 `git init`  
 `git remote add origin -t classic https://github.com/thakhisis/wow-addons`  
-`git checkout classic`
+`git checkout -t origin/classic`
 `git pull`  
 
 ## Update from new
@@ -14,8 +14,11 @@
 `git init`  
 `git remote add -t classic https://github.com/thakhisis/wow-addons`  
 `git fetch`  
-`git reset origin/master`  
 `git checkout -t origin/master`  
+`git pull`  
+`git add .`  
+`git commit -m "added"`  
+`git push`
 
 ## Update existing
 `git add .`  
