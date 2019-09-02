@@ -68,9 +68,9 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20190824201836"),
-	DisplayVersion = "1.13.2", -- the string that is shown as version
-	ReleaseRevision = releaseDate(2019, 8, 24) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	Revision = parseCurseDate("20190831173730"),
+	DisplayVersion = "1.13.5", -- the string that is shown as version
+	ReleaseRevision = releaseDate(2019, 8, 31, 12) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -155,7 +155,6 @@ DBM.DefaultOptions = {
 	ShowEngageMessage = true,
 	ShowDefeatMessage = true,
 	ShowGuildMessages = true,
-	ShowGuildMessagesPlus = false,
 	AutoRespond = true,
 	StatusEnabled = true,
 	WhisperStats = false,
@@ -265,7 +264,6 @@ DBM.DefaultOptions = {
 	BlockNoteShare = false,
 	DontShowReminders = false,
 	DontShowPT2 = false,
-	DontShowPTCountdownText = false,
 	DontPlayPTCountdown = false,
 	DontShowPTText = false,
 	DontShowPTNoID = false,
@@ -449,7 +447,10 @@ local LD
 if LibStub("LibDurability", true) then
 	LD = LibStub("LibDurability")
 end
-
+local ThreatLib
+if LibStub("ThreatClassic-1.0", true) and WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+	ThreatLib = LibStub("ThreatClassic-1.0")
+end
 
 --------------------------------------------------------
 --  Cache frequently used global variables in locals  --
@@ -472,7 +473,11 @@ local UnitExists, UnitIsDead, UnitIsFriend, UnitIsUnit = UnitExists, UnitIsDead,
 local GetSpellInfo, GetDungeonInfo, GetSpellTexture, GetSpellCooldown = GetSpellInfo, GetDungeonInfo, GetSpellTexture, GetSpellCooldown
 --local EJ_GetEncounterInfo, EJ_GetCreatureInfo, EJ_GetSectionInfo, GetSectionIconFlags = EJ_GetEncounterInfo, EJ_GetCreatureInfo, C_EncounterJournal.GetSectionInfo, C_EncounterJournal.GetSectionIconFlags
 local GetInstanceInfo = GetInstanceInfo
---local UnitDetailedThreatSituation = UnitDetailedThreatSituation--Added in wrath DO NOT REMOVE MIGHT NEED ONE DAY
+local UnitDetailedThreatSituation = ThreatLib and function(unit, mob)
+	return ThreatLib:UnitDetailedThreatSituation(unit, mob)
+end or function(unit, mob)
+	return 0, 0--If threatlib failure (shouldn't happen, but if user screws with it, UnitDetailedThreatSituation will just fail silently with not tanking
+end
 local UnitIsGroupLeader, UnitIsGroupAssistant = UnitIsGroupLeader, UnitIsGroupAssistant
 local PlaySoundFile, PlaySound = PlaySoundFile, PlaySound
 local Ambiguate = Ambiguate
@@ -1020,18 +1025,24 @@ do
 	end
 
 	function DBM:RegisterShortTermEvents(...)
-		if self.shortTermEventsRegistered then
-			return
-		end
-		self.shortTermRegisterEvents = {...}
-		for k, v in pairs(self.shortTermRegisterEvents) do
+		local _shortTermRegisterEvents = {...}
+		for k, v in pairs(_shortTermRegisterEvents) do
 			if v:sub(0, 5) == "UNIT_" and v:sub(v:len() - 10) ~= "_UNFILTERED" and not v:find(" ") and v ~= "UNIT_DIED" and v ~= "UNIT_DESTROYED" then
 				-- legacy event, oh noes
-				self.shortTermRegisterEvents[k] = v .. " boss1 boss2 boss3 boss4 boss5 target"--focus
+				_shortTermRegisterEvents[k] = v .. " boss1 boss2 boss3 boss4 boss5 target focus"
 			end
 		end
 		self.shortTermEventsRegistered = 1
-		self:RegisterEvents(unpack(self.shortTermRegisterEvents))
+		self:RegisterEvents(unpack(_shortTermRegisterEvents))
+		-- Fix so we can register multiple short term events. Use at your own risk, as unsucribing will cause
+		-- all short term events to unregister.
+		if not self.shortTermRegisterEvents then
+			self.shortTermRegisterEvents = {}
+		end
+		for k, v in pairs(_shortTermRegisterEvents) do
+			self.shortTermRegisterEvents[k] = v
+		end
+		-- End fix
 	end
 
 	function DBM:UnregisterShortTermEvents()
@@ -4030,11 +4041,6 @@ do
 		end
 	end
 
-	local function restoreTimerTrackerSounds()
-		SOUNDKIT.UI_BATTLEGROUND_COUNTDOWN_TIMER = 25477
-		SOUNDKIT.UI_BATTLEGROUND_COUNTDOWN_FINISHED = 25478
-	end
-
 	local syncHandlers = {}
 	local whisperSyncHandlers = {}
 
@@ -4178,8 +4184,8 @@ do
 	local dummyMod -- dummy mod for the pull timer
 	syncHandlers["PT"] = function(sender, timer, lastMapID, target)
 		if DBM.Options.DontShowUserTimers then return end
-		local LFGTankException = IsPartyLFG() and UnitGroupRolesAssigned(sender) == "TANK"
-		if (DBM:GetRaidRank(sender) == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
+		--local LFGTankException = IsPartyLFG() and UnitGroupRolesAssigned(sender) == "TANK"
+		if (DBM:GetRaidRank(sender) == 0 and IsInGroup()) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
 			return
 		end
 		if (lastMapID and tonumber(lastMapID) ~= LastInstanceMapID) or (not lastMapID and DBM.Options.DontShowPTNoID) then return end
@@ -4201,45 +4207,12 @@ do
 			dummyMod.timer:Stop()
 			--fireEvent("DBM_TimerStop", "pull")
 		end
-		if not DBM.Options.DontShowPTCountdownText then
-			TimerTracker_OnEvent(TimerTracker, "PLAYER_ENTERING_WORLD")--easiest way to nil out timers on TimerTracker frame. This frame just has no actual star/stop functions
-			DBM:Unschedule(restoreTimerTrackerSounds)
-			restoreTimerTrackerSounds()
-		end
 		dummyMod.text:Cancel()
 		if timer == 0 then return end--"/dbm pull 0" will strictly be used to cancel the pull timer (which is why we let above part of code run but not below)
 		DBM:FlashClientIcon()
 		if not DBM.Options.DontShowPT2 then
 			dummyMod.timer:Start(timer, DBM_CORE_TIMER_PULL)
 			--fireEvent("DBM_TimerStart", "pull", DBM_CORE_TIMER_PULL, timer, "132349", "utilitytimer", nil, 0)
-		end
-		if not DBM.Options.DontShowPTCountdownText then
-			--Start A TimerTracker timer by tricking it to start a BG timer
-			TimerTracker_OnEvent(TimerTracker, "START_TIMER", 1, timer, timer)
-			--Set default timer sound globals to fake values
-			SOUNDKIT.UI_BATTLEGROUND_COUNTDOWN_TIMER = 999999
-			SOUNDKIT.UI_BATTLEGROUND_COUNTDOWN_FINISHED = 999999
-			--But schedule method to restore the globals when timer ends
-			DBM:Unschedule(restoreTimerTrackerSounds)
-			DBM:Schedule(timer+3, restoreTimerTrackerSounds)
-			--Find the timer object DBM just created and hack our own changes into it.
-			local timerObject
-			for a,b in pairs(TimerTracker.timerList) do
-				if b.type == 1 and not b.isFree then
-					timerObject = b
-					break
-				end
-			end
-			if timerObject then
-				--Set end texture to nothing to eliminate pvp logo/hourglass
-				timerObject.GoTexture:SetTexture("")
-				timerObject.GoTextureGlow:SetTexture("")
-				--We don't want the PVP bar, we only want timer text
-				if timer > 10 then
-					--timerObject.startNumbers:Play()
-					timerObject.bar:Hide()
-				end
-			end
 		end
 		if not DBM.Options.DontShowPTText then
 			if target then
@@ -4251,7 +4224,7 @@ do
 			end
 		end
 		DBM:StartLogging(timer, checkForActualPull)
-		if DBM.Options.CheckGear then
+		--[[if DBM.Options.CheckGear then
 			local bagilvl, equippedilvl = GetAverageItemLevel()
 			local difference = bagilvl - equippedilvl
 			local weapon = GetInventoryItemLink("player", 16)
@@ -4267,7 +4240,7 @@ do
 			elseif IsInRaid() and (not weapon or fishingPole) then
 				dummyMod.geartext:Show(DBM_CORE_GEAR_WARNING_WEAPON)
 			end
-		end
+		end--]]
 	end
 
 	do
@@ -4597,19 +4570,8 @@ do
 			if DBM:AntiSpam(10, "GCB") then
 				if IsInInstance() then return end--Simple filter, if you are inside an instance, just filter it, if not in instance, good to go.
 				difficulty = tonumber(difficulty)
-				if not DBM.Options.ShowGuildMessagesPlus and difficulty == 8 then return end
 				local bossName = EJ_GetEncounterInfo and EJ_GetEncounterInfo(modId) or name or DBM_CORE_UNKNOWN
-				local difficultyName = DBM_CORE_UNKNOWN
-				if difficulty == 8 then
-					difficultyName = PLAYER_DIFFICULTY6.."+"
-				elseif difficulty == 16 then
-					difficultyName = PLAYER_DIFFICULTY6
-				elseif difficulty == 15 then
-					difficultyName = PLAYER_DIFFICULTY2
-				else
-					difficultyName = PLAYER_DIFFICULTY1
-				end
-				DBM:AddMsg(DBM_CORE_GUILD_COMBAT_STARTED:format(difficultyName.."-"..bossName))
+				DBM:AddMsg(DBM_CORE_GUILD_COMBAT_STARTED:format(bossName))
 			end
 		end
 
@@ -4619,22 +4581,11 @@ do
 			if DBM:AntiSpam(5, "GCE") then
 				if IsInInstance() then return end--Simple filter, if you are inside an instance, just filter it, if not in instance, good to go.
 				difficulty = tonumber(difficulty)
-				if not DBM.Options.ShowGuildMessagesPlus and difficulty == 8 then return end
 				local bossName = EJ_GetEncounterInfo and EJ_GetEncounterInfo(modId) or name or DBM_CORE_UNKNOWN
-				local difficultyName = DBM_CORE_UNKNOWN
-				if difficulty == 8 then
-					difficultyName = PLAYER_DIFFICULTY6.."+"
-				elseif difficulty == 16 then
-					difficultyName = PLAYER_DIFFICULTY6
-				elseif difficulty == 15 then
-					difficultyName = PLAYER_DIFFICULTY2
-				else
-					difficultyName = PLAYER_DIFFICULTY1
-				end
 				if wipe == "1" then
-					DBM:AddMsg(DBM_CORE_GUILD_COMBAT_ENDED_AT:format(difficultyName.."-"..bossName, wipeHP, time))
+					DBM:AddMsg(DBM_CORE_GUILD_COMBAT_ENDED_AT:format(bossName, wipeHP, time))
 				else
-					DBM:AddMsg(DBM_CORE_GUILD_BOSS_DOWN:format(difficultyName.."-"..bossName, time))
+					DBM:AddMsg(DBM_CORE_GUILD_BOSS_DOWN:format(bossName, time))
 				end
 			end
 		end
@@ -5799,7 +5750,7 @@ do
 						self:AddMsg(DBM_CORE_COMBAT_STARTED_IN_PROGRESS:format(difficultyText..name))
 					else
 						self:AddMsg(DBM_CORE_COMBAT_STARTED:format(difficultyText..name))
-						if (difficultyIndex == 8 or difficultyIndex == 14 or difficultyIndex == 15 or difficultyIndex == 16) and InGuildParty() and not statusGuildDisabled and not self.Options.DisableGuildStatus then--Only send relevant content, not guild beating down lich king or LFR.
+						if (DBM:GetNumRealPlayersInZone() >= 20) and not statusGuildDisabled and not self.Options.DisableGuildStatus then--Only send relevant content, ie raids
 							SendAddonMessage("D4C", "GCB\t"..modId.."\t2\t"..difficultyIndex.."\t"..name, "GUILD")
 						end
 					end
@@ -5810,7 +5761,6 @@ do
 					dummyMod.text:Cancel()
 					dummyMod.timer:Stop()
 					--fireEvent("DBM_TimerStop", "pull")
-					TimerTracker_OnEvent(TimerTracker, "PLAYER_ENTERING_WORLD")
 				end
 				if BigWigs and BigWigs.db.profile.raidicon and not self.Options.DontSetIcons and self:GetRaidRank() > 0 then--Both DBM and bigwigs have raid icon marking turned on.
 					self:AddMsg(DBM_CORE_BIGWIGS_ICON_CONFLICT)--Warn that one of them should be turned off to prevent conflict (which they turn off is obviously up to raid leaders preference, dbm accepts either or turned off to stop this alert)
@@ -5967,7 +5917,7 @@ do
 				else
 					if self.Options.ShowDefeatMessage then
 						self:AddMsg(DBM_CORE_COMBAT_ENDED_AT_LONG:format(difficultyText..name, wipeHP, strFromTime(thisTime), totalPulls - totalKills))
-						if (difficultyIndex == 8 or difficultyIndex == 14 or difficultyIndex == 15 or difficultyIndex == 16) and InGuildParty() and not statusGuildDisabled and not self.Options.DisableGuildStatus then--Maybe add mythic plus/CM?
+						if (DBM:GetNumRealPlayersInZone() >= 20) and not statusGuildDisabled and not self.Options.DisableGuildStatus then
 							SendAddonMessage("D4C", "GCE\t"..modId.."\t5\t1\t"..strFromTime(thisTime).."\t"..difficultyIndex.."\t"..name.."\t"..wipeHP, "GUILD")
 						end
 					end
@@ -6023,17 +5973,17 @@ do
 						msg = DBM_CORE_BOSS_DOWN_I:format(difficultyText..name, totalKills)
 					elseif not lastTime then
 						msg = DBM_CORE_BOSS_DOWN:format(difficultyText..name, strFromTime(thisTime))
-						if (difficultyIndex == 8 or difficultyIndex == 14 or difficultyIndex == 15 or difficultyIndex == 16) and InGuildParty() and not statusGuildDisabled and not self.Options.DisableGuildStatus then
+						if (DBM:GetNumRealPlayersInZone() >= 20) and not statusGuildDisabled and not self.Options.DisableGuildStatus then
 							SendAddonMessage("D4C", "GCE\t"..modId.."\t5\t0\t"..strFromTime(thisTime).."\t"..difficultyIndex.."\t"..name, "GUILD")
 						end
 					elseif thisTime < (bestTime or mhuge) then
 						msg = DBM_CORE_BOSS_DOWN_NR:format(difficultyText..name, strFromTime(thisTime), strFromTime(bestTime), totalKills)
-						if (difficultyIndex == 8 or difficultyIndex == 14 or difficultyIndex == 15 or difficultyIndex == 16) and InGuildParty() and not statusGuildDisabled and not self.Options.DisableGuildStatus then
+						if (DBM:GetNumRealPlayersInZone() >= 20) and not statusGuildDisabled and not self.Options.DisableGuildStatus then
 							SendAddonMessage("D4C", "GCE\t"..modId.."\t5\t0\t"..strFromTime(thisTime).."\t"..difficultyIndex.."\t"..name, "GUILD")
 						end
 					else
 						msg = DBM_CORE_BOSS_DOWN_L:format(difficultyText..name, strFromTime(thisTime), strFromTime(lastTime), strFromTime(bestTime), totalKills)
-						if (difficultyIndex == 8 or difficultyIndex == 14 or difficultyIndex == 15 or difficultyIndex == 16) and InGuildParty() and not statusGuildDisabled and not self.Options.DisableGuildStatus then
+						if (DBM:GetNumRealPlayersInZone() >= 20) and not statusGuildDisabled and not self.Options.DisableGuildStatus then
 							SendAddonMessage("D4C", "GCE\t"..modId.."\t5\t0\t"..strFromTime(thisTime).."\t"..difficultyIndex.."\t"..name, "GUILD")
 						end
 					end
@@ -7602,13 +7552,13 @@ do
 			if mobuId then--Have a valid mob unit ID
 				--First, use trust threat more than fallbackuId and see what we pull from it first.
 				--This is because for GetCurrentTank we want to know who is tanking it, not who it's targeting.
-				--[[local unitId = (IsInRaid() and "raid") or "party"
+				local unitId = (IsInRaid() and "raid") or "party"
 				for i = 0, GetNumGroupMembers() do
 					local id = (i == 0 and "target") or unitId..i
 					local tanking, status = UnitDetailedThreatSituation(id, mobuId)--Tanking may return 0 if npc is temporarily looking at an NPC (IE fracture) but status will still be 3 on true tank
 					if tanking or (status == 3) then uId = id end--Found highest threat target, make them uId
 					if uId then break end
-				end--]]
+				end
 				--Did not get anything useful from threat, so use who the boss was looking at, at time of cast (ie fallbackuId)
 				if fallbackuId and not uId then
 					uId = fallbackuId
@@ -7665,13 +7615,13 @@ do
 			if mobuId then--Have a valid mob unit ID
 				--First, use trust threat more than fallbackuId and see what we pull from it first.
 				--This is because for CheckTankDistance we want to know who is tanking it, not who it's targeting.
-				--[[local unitId = (IsInRaid() and "raid") or "party"
+				local unitId = (IsInRaid() and "raid") or "party"
 				for i = 0, GetNumGroupMembers() do
 					local id = (i == 0 and "target") or unitId..i
 					local tanking, status = UnitDetailedThreatSituation(id, mobuId)--Tanking may return 0 if npc is temporarily looking at an NPC (IE fracture) but status will still be 3 on true tank
 					if tanking or (status == 3) then uId = id end--Found highest threat target, make them uId
 					if uId then break end
-				end--]]
+				end
 				--Did not get anything useful from threat, so use who the boss was looking at, at time of cast (ie fallbackuId)
 				if fallbackuId and not uId then
 					uId = fallbackuId
@@ -8099,6 +8049,12 @@ function bossModPrototype:IsTanking(unit, boss, isName, onlyRequested, bossGUID)
 	end
 	--Prefer main target first
 	if boss then--Only checking one bossID as requested
+		--Check ThreatLib first
+		local tanking, status = UnitDetailedThreatSituation(unit, boss)
+		if tanking or (status == 3) then
+			return true
+		end
+		--Non threatlib fallback
 		if UnitExists(boss) then
 			local _, targetuid = self:GetBossTarget(UnitGUID(boss), true)
 			if UnitIsUnit(unit, targetuid) then
@@ -8109,6 +8065,12 @@ function bossModPrototype:IsTanking(unit, boss, isName, onlyRequested, bossGUID)
 		--Check all of them if one isn't defined
 		for i = 1, 5 do
 			local unitID = "boss"..i
+			--Check ThreatLib first
+			local tanking, status = UnitDetailedThreatSituation(unit, unitID)
+			if tanking or (status == 3) then
+				return true
+			end
+			--Non threatlib fallback
 			if UnitExists(unitID) then
 				local _, targetuid = self:GetBossTarget(UnitGUID(unitID), true)
 				if UnitIsUnit(unit, targetuid) then

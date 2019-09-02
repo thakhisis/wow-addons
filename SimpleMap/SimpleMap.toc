@@ -1,0 +1,9 @@
+## Interface: 11302
+## Version: 1.2.1
+## Title: SimpleMap
+## Notes: Smaller worldmap and it fades the map when moving
+## Author: Sojiro84
+## Dependencies: Blizzard_WorldMap
+## SavedVariables: SimpleMap
+
+SimpleMap.lua
